@@ -1215,7 +1215,12 @@ function onHR(res) {
       document.getElementById('gpHi').textContent = g.hi;
       if (g.name === lastG) { gHold++; } else { gHold = 0; lastG = g.name; }
       document.getElementById('gBar').style.width = Math.min((gHold / 10) * 100, 100) + '%';
-      if (gHold >= 10) { addWord(g.en); gHold = 0; lastG = ''; document.getElementById('gBar').style.width = '0%'; }
+      if (gHold >= 10) {
+        addWord(g.en);
+        gHold = 0; lastG = ''; document.getElementById('gBar').style.width = '0%';
+        // Auto-send after a short delay so the word appears in the box first
+        setTimeout(() => { if (document.getElementById('cbox').textContent.trim()) sendMsg(); }, 300);
+      }
     } else {
       document.getElementById('gpTxt').textContent = 'Hand detected…';
       document.getElementById('gpHi').textContent = '';
@@ -1270,7 +1275,16 @@ function receiveMsg(m) {
   addBubble(m.from, m.text, m.translations || {}, false);
   if (role === 'speak' && m.from === 'mute') {
     const code = selectedLang.split('-')[0];
-    const speakText = (m.translations && m.translations[code]) ? m.translations[code] : m.text;
+    // Try translated version first, then fall back to original English text
+    let speakText = m.text;
+    if (m.translations) {
+      if (code !== 'en' && m.translations[code]) {
+        speakText = m.translations[code];
+      } else if (m.translations['hi']) {
+        // If no translation for selected lang, use Hindi as fallback
+        speakText = selectedLang.startsWith('hi') ? m.translations['hi'] : m.text;
+      }
+    }
     speakTTS(speakText, selectedLang);
   }
   if (role === 'mute' && m.from === 'speak') toast('💬 "' + m.text.substring(0,45) + (m.text.length>45?'…':'') + '"', 'var(--green)');
@@ -1310,39 +1324,49 @@ function addBubble(from, text, translations, self) {
 function speakTTS(text, lang) {
   if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang; u.rate = .88; u.pitch = 1; u.volume = 1;
 
-  // Smart voice selection
-  const vs = speechSynthesis.getVoices();
-  const code = lang.split('-')[0];
-  const region = lang.split('-')[1];
+  function doSpeak() {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang; u.rate = .88; u.pitch = 1; u.volume = 1;
 
-  // Priority: exact match → same language → same region → English → first
-  const voice =
-    vs.find(v => v.lang === lang) ||
-    vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
-    vs.find(v => v.lang.startsWith(code + '-IN')) ||
-    vs.find(v => v.lang.startsWith(code)) ||
-    vs.find(v => v.lang.startsWith('en-IN')) ||
-    vs.find(v => v.lang.startsWith('en')) ||
-    vs[0];
+    const vs = speechSynthesis.getVoices();
+    const code = lang.split('-')[0];
 
-  if (voice) u.voice = voice;
+    const voice =
+      vs.find(v => v.lang === lang) ||
+      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
+      vs.find(v => v.lang.startsWith(code + '-IN')) ||
+      vs.find(v => v.lang.startsWith(code)) ||
+      vs.find(v => v.lang.startsWith('en-IN')) ||
+      vs.find(v => v.lang.startsWith('en')) ||
+      vs[0];
 
-  u.onstart = () => { const els = document.querySelectorAll('.b-tts'); els[els.length-1]?.classList.add('on'); };
-  u.onend = () => { document.querySelectorAll('.b-tts.on').forEach(e => e.classList.remove('on')); };
-  u.onerror = () => {
-    // Fallback to English if target lang fails
-    if (lang !== 'en-IN') {
-      const fallback = new SpeechSynthesisUtterance(text);
-      fallback.lang = 'en-IN'; fallback.rate = .88;
-      const ev = vs.find(v => v.lang.startsWith('en')) || vs[0];
-      if (ev) fallback.voice = ev;
-      speechSynthesis.speak(fallback);
-    }
-  };
-  speechSynthesis.speak(u);
+    if (voice) u.voice = voice;
+
+    u.onstart = () => { const els = document.querySelectorAll('.b-tts'); els[els.length-1]?.classList.add('on'); };
+    u.onend = () => { document.querySelectorAll('.b-tts.on').forEach(e => e.classList.remove('on')); };
+    u.onerror = () => {
+      if (lang !== 'en-IN') {
+        const fallback = new SpeechSynthesisUtterance(text);
+        fallback.lang = 'en-IN'; fallback.rate = .88;
+        const ev = speechSynthesis.getVoices().find(v => v.lang.startsWith('en')) || speechSynthesis.getVoices()[0];
+        if (ev) fallback.voice = ev;
+        speechSynthesis.speak(fallback);
+      }
+    };
+    speechSynthesis.speak(u);
+  }
+
+  // If voices not loaded yet, wait for them
+  const voices = speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    doSpeak();
+  } else {
+    speechSynthesis.addEventListener('voiceschanged', function handler() {
+      speechSynthesis.removeEventListener('voiceschanged', handler);
+      doSpeak();
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════

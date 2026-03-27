@@ -355,6 +355,65 @@ function speakTTS(text, lang) {
   }
 }
 
+// ── TTS LOUD — for mute person hearing the speaking person (phone-call quality) ──
+function speakTTSLoud(text, lang) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel(); // cut any ongoing speech immediately
+
+  function doSpeak() {
+    const u    = new SpeechSynthesisUtterance(text);
+    u.lang     = lang;
+    u.rate     = 0.82;   // slightly slow — clear & natural
+    u.pitch    = 1.05;   // slight warmth
+    u.volume   = 1;      // max volume
+
+    const vs   = speechSynthesis.getVoices();
+    const code = lang.split('-')[0];
+
+    // Prefer online (non-local) voice for higher quality
+    const voice =
+      vs.find(v => v.lang === lang && v.localService === false) ||
+      vs.find(v => v.lang === lang) ||
+      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
+      vs.find(v => v.lang.startsWith(code + '-IN')) ||
+      vs.find(v => v.lang.startsWith(code)) ||
+      vs.find(v => v.lang.startsWith('en-IN')) ||
+      vs.find(v => v.lang.startsWith('en')) ||
+      vs[0];
+
+    if (voice) u.voice = voice;
+
+    u.onstart = () => {
+      const els = document.querySelectorAll('.b-tts');
+      els[els.length - 1]?.classList.add('on');
+    };
+    u.onend = () => {
+      document.querySelectorAll('.b-tts.on').forEach(e => e.classList.remove('on'));
+    };
+    u.onerror = () => {
+      if (lang !== 'en-IN') {
+        const fb = new SpeechSynthesisUtterance(text);
+        fb.lang = 'en-IN'; fb.rate = 0.82; fb.volume = 1;
+        const fv = speechSynthesis.getVoices().find(v => v.lang.startsWith('en')) || speechSynthesis.getVoices()[0];
+        if (fv) fb.voice = fv;
+        speechSynthesis.speak(fb);
+      }
+    };
+
+    speechSynthesis.speak(u);
+  }
+
+  const voices = speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    doSpeak();
+  } else {
+    speechSynthesis.addEventListener('voiceschanged', function handler() {
+      speechSynthesis.removeEventListener('voiceschanged', handler);
+      doSpeak();
+    });
+  }
+}
+
 // ── STT (Speech-to-Text) ──
 function toggleMic() {
   const btn = document.getElementById('micBtn');

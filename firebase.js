@@ -164,6 +164,7 @@ function sendMsg() {
 function receiveMsg(m) {
   addBubble(m.from, m.text, m.translations || {}, false);
 
+  // Hearing person receives ISL message → speak it aloud in chosen language
   if (role === 'speak' && m.from === 'mute') {
     const code = selectedLang.split('-')[0];
     let speakText = m.text;
@@ -177,8 +178,10 @@ function receiveMsg(m) {
     speakTTS(speakText, selectedLang);
   }
 
+  // Mute person receives hearing person's reply → speak it loud & clear like a phone call
   if (role === 'mute' && m.from === 'speak') {
-    toast('💬 "' + m.text.substring(0, 45) + (m.text.length > 45 ? '…' : '') + '"', 'var(--green)');
+    toast('🗣️ ' + m.text.substring(0, 45) + (m.text.length > 45 ? '…' : ''), 'var(--green)');
+    speakTTSLoud(m.text, selectedLang);
   }
 }
 

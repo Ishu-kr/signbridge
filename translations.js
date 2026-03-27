@@ -219,14 +219,82 @@ function getTr(word, lang) {
 
 // ── ISL WORD CATEGORIES ──
 const ISL_DATA = {
-  "🙏 Greetings":  ["Namaste","Hello","Good morning","Good afternoon","Good evening","Good night","Welcome","Goodbye","Thank you","Thank you very much","Please","Sorry","Excuse me","Yes","No","Maybe","Okay","How are you?","I am fine","See you later","Nice to meet you"],
-  "🏠 Daily Life": ["Water","Food","Eat","Drink","Sleep","Wake up","Bath","Clothes","Work","Home","Come","Go","Stop","Wait","Help","More","Less","Again","Finished","Toilet","Open","Close","Take","Give"],
-  "👨‍👩‍👧 Family":    ["Mother","Father","Sister","Brother","Grandmother","Grandfather","Son","Daughter","Friend","Teacher","Doctor","Child","Baby","Family","Wife","Husband"],
-  "🏥 Medical 🆘": ["Pain","Headache","Fever","Medicine","Hospital","Ambulance","Emergency","Help me","I need doctor","Chest pain","Cannot breathe","Bleeding","Vomiting","Dizzy","Allergy","Hurt","Sick","Call 108","Injection","Pain here"],
-  "😊 Emotions":   ["Happy","Sad","Angry","Scared","Tired","Hungry","Thirsty","Cold","Hot","Love","Worried","Calm","Excited","Nervous","Confused","Bored","Comfortable"],
-  "🔢 Numbers":    ["One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Twenty","Fifty","Hundred","Thousand","Zero"],
-  "⏰ Time":        ["Now","Later","Today","Tomorrow","Yesterday","Morning","Afternoon","Evening","Night","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Hour","Minute"],
-  "📚 School":     ["Book","Pen","Paper","Class","Exam","Homework","Study","Read","Write","Question","Answer","Understand","Repeat","Good","Bad","Correct","Wrong","School"],
-  "🚌 Transport":  ["Bus","Train","Auto","Car","Bike","Walk","Road","Station","Ticket","Near","Far","Left","Right","Straight","Where","Airport"],
-  "💬 Sentences":  ["I need help","Where is the hospital?","I cannot hear","I am deaf","Please write it down","I understand","I don't understand","Can you help me?","Call the police","I am lost","I need water","Where is the toilet?","I have pain here","I am hungry","Please speak slowly","My name is ___","What time is it?","How much does it cost?","Please call my family","Thank you very much"],
+  "🙏 Greetings": [
+    "Namaste","Hello","Good morning","Good afternoon","Good evening","Good night",
+    "Welcome","Goodbye","Thank you","Thank you very much","Please","Sorry","Excuse me",
+    "Yes","No","Maybe","Okay","How are you?","I am fine","See you later","Nice to meet you"
+  ],
+  "🏠 Daily Life": [
+    "Water","Food","Eat","Drink","Sleep","Wake up","Bath","Clothes","Work","Home",
+    "Come","Go","Stop","Wait","Help","More","Less","Again","Finished","Toilet",
+    "Open","Close","Take","Give","Buy","Money","Price","Key","Light","Fan",
+    "Hot","Cold","Clean","Dirty","Heavy","Light","Big","Small"
+  ],
+  "👨‍👩‍👧 Family": [
+    "Mother","Father","Sister","Brother","Grandmother","Grandfather",
+    "Son","Daughter","Friend","Teacher","Doctor","Child","Baby","Family","Wife","Husband",
+    "Uncle","Aunt","Cousin","Neighbour","Boss","Colleague"
+  ],
+  "🏥 Medical 🆘": [
+    "Pain","Headache","Fever","Medicine","Hospital","Ambulance","Emergency",
+    "Help me","I need doctor","Chest pain","Cannot breathe","Bleeding","Vomiting",
+    "Dizzy","Allergy","Hurt","Sick","Call 108","Injection","Pain here",
+    "Blood pressure","Sugar","Heart","Bone","Fracture","Swelling","Wound",
+    "Operation","X-ray","Test","Report","Tablet","Syrup","Bandage"
+  ],
+  "😊 Emotions": [
+    "Happy","Sad","Angry","Scared","Tired","Hungry","Thirsty",
+    "Cold","Hot","Love","Worried","Calm","Excited","Nervous","Confused","Bored","Comfortable",
+    "Surprised","Shy","Proud","Jealous","Grateful","Lonely","Hopeful","Disappointed"
+  ],
+  "🔢 Numbers": [
+    "One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
+    "Twenty","Fifty","Hundred","Thousand","Zero"
+  ],
+  "⏰ Time": [
+    "Now","Later","Today","Tomorrow","Yesterday","Morning","Afternoon","Evening","Night",
+    "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Hour","Minute",
+    "Week","Month","Year","Always","Never","Sometimes","Early","Late","Fast","Slow"
+  ],
+  "📚 School": [
+    "Book","Pen","Paper","Class","Exam","Homework","Study","Read","Write",
+    "Question","Answer","Understand","Repeat","Good","Bad","Correct","Wrong","School",
+    "College","University","Library","Computer","Internet","Mobile","Laptop","Bag",
+    "Holiday","Absent","Present","Result","Pass","Fail","Certificate","Scholarship"
+  ],
+  "🚌 Transport": [
+    "Bus","Train","Auto","Car","Bike","Walk","Road","Station","Ticket","Near","Far",
+    "Left","Right","Straight","Where","Airport","Taxi","Metro","Ship","Aeroplane",
+    "Petrol","Parking","Traffic","Signal","Map","Address","Distance","Kilometre"
+  ],
+  "🛒 Shopping": [
+    "Buy","Sell","Price","Expensive","Cheap","Discount","Bill","Cash","Card",
+    "Shop","Market","Mall","Food","Vegetable","Fruit","Cloth","Shoe","Medicine",
+    "Bag","Size","Colour","Exchange","Return","Receipt","Order","Delivery"
+  ],
+  "🏡 Home": [
+    "House","Room","Kitchen","Bathroom","Bedroom","Hall","Door","Window","Stairs",
+    "Roof","Wall","Floor","Table","Chair","Bed","Sofa","Television","Fridge",
+    "Cook","Wash","Sweep","Clean","Lock","Key","Rent","Address","Neighbour"
+  ],
+  "💬 Sentences": [
+    "I need help","Where is the hospital?","I cannot hear","I am deaf",
+    "Please write it down","I understand","I don't understand","Can you help me?",
+    "Call the police","I am lost","I need water","Where is the toilet?",
+    "I have pain here","I am hungry","Please speak slowly","My name is ___",
+    "What time is it?","How much does it cost?","Please call my family",
+    "Thank you very much","Please repeat that","I cannot speak",
+    "Please be patient","I use sign language","Do you understand me?",
+    "Please show me","I need to sit down","Where is the bus stop?",
+    "Can you write it?","Please call 112","I am from India",
+    "My phone number is","Where is the nearest ATM?","I need food",
+    "I am feeling unwell","Please get a doctor","Where is the police station?",
+    "I need an interpreter","My battery is low","Can I borrow your phone?",
+    "I am waiting for someone","I don't have money","Please help me cross the road"
+  ],
+  "🔤 Alphabet": [
+    "A","B","C","D","E","F","G","H","I","J","K","L","M",
+    "N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+  ],
 };
+

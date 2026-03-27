@@ -224,7 +224,11 @@ async function initCamera() {
   const st = document.getElementById('camSt');
   st.textContent = '⏳ Starting…';
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video:{ width:640, height:480 }, audio:false });
+    // Use lower resolution for faster processing on mobile/slow devices
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal:320 }, height: { ideal:240 }, frameRate: { ideal:30 } },
+      audio: false
+    });
     const v = document.getElementById('camVideo');
     v.srcObject = stream;
     await v.play();
@@ -236,15 +240,34 @@ async function initCamera() {
   }
 }
 
+// Smoothing buffer — last N gesture names, majority wins
+const SMOOTH_BUF = [];
+const SMOOTH_N   = 5;   // look at last 5 frames
+function smoothGesture(name) {
+  SMOOTH_BUF.push(name);
+  if (SMOOTH_BUF.length > SMOOTH_N) SMOOTH_BUF.shift();
+  // Count occurrences
+  const counts = {};
+  SMOOTH_BUF.forEach(n => { counts[n] = (counts[n] || 0) + 1; });
+  // Return name only if it appears in majority of recent frames
+  const best = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+  return best && best[1] >= Math.ceil(SMOOTH_N / 2) ? best[0] : null;
+}
+
 function initMP(vid) {
   const st = document.getElementById('camSt');
   try {
     const h = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
-    h.setOptions({ maxNumHands:1, modelComplexity:1, minDetectionConfidence:.65, minTrackingConfidence:.5 });
+    h.setOptions({
+      maxNumHands:           1,
+      modelComplexity:       0,    // 0 = fast, 1 = accurate — use 0 for speed
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence:  0.5
+    });
     h.onResults(onHR);
     const c   = document.getElementById('handCanvas');
-    c.width   = 640; c.height = 480;
-    const cam = new Camera(vid, { onFrame: async () => await h.send({ image:vid }), width:640, height:480 });
+    c.width   = 320; c.height = 240;
+    const cam = new Camera(vid, { onFrame: async () => await h.send({ image:vid }), width:320, height:240 });
     cam.start().then(() => { st.textContent = '✅ Hand tracking'; });
   } catch (e) {
     st.textContent = '📷 Camera ready';
@@ -264,7 +287,11 @@ function onHR(res) {
     document.getElementById('gpDot').style.display    = 'inline-block';
     document.getElementById('gBarWrap').style.display = 'block';
 
-    const g = classifyGesture(lm);
+    const raw = classifyGesture(lm);
+    // Apply smoothing — only accept a gesture if it's stable across recent frames
+    const stableName = smoothGesture(raw ? raw.name : null);
+    const g = stableName ? GESTURE_DEFS.find(x => x.name === stableName) : null;
+
     if (g) {
       document.getElementById('gpTxt').textContent = `${g.emoji} ${g.en}`;
       document.getElementById('gpHi').textContent  = g.hi;
@@ -272,16 +299,18 @@ function onHR(res) {
       if (g.name === lastG) { gHold++; }
       else { gHold = 0; lastG = g.name; }
 
-      document.getElementById('gBar').style.width = Math.min((gHold / 10) * 100, 100) + '%';
+      // Hold bar — 15 frames (~1s at 15fps) for more intentional triggering
+      const HOLD_FRAMES = 15;
+      document.getElementById('gBar').style.width = Math.min((gHold / HOLD_FRAMES) * 100, 100) + '%';
 
-      // Auto-send after holding gesture for ~1.5s (10 frames)
-      if (gHold >= 10) {
+      if (gHold >= HOLD_FRAMES) {
         addWord(g.en);
         gHold = 0; lastG = '';
+        SMOOTH_BUF.length = 0;
         document.getElementById('gBar').style.width = '0%';
         setTimeout(() => {
           if (document.getElementById('cbox').textContent.trim()) sendMsg();
-        }, 300);
+        }, 400);
       }
     } else {
       document.getElementById('gpTxt').textContent = 'Hand detected…';
@@ -295,37 +324,32 @@ function onHR(res) {
     document.getElementById('gpTxt').textContent      = 'Position hands in frame';
     document.getElementById('gpHi').textContent       = '';
     gHold = 0; lastG = '';
+    SMOOTH_BUF.length = 0;
   }
 }
 
 // ── TTS (Text-to-Speech) ──
 function speakTTS(text, lang) {
-  if (!window.speechSynthesis || !text || !text.trim()) return;
-
-  // Cancel any current speech first so new voice plays immediately
+  if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
 
   function doSpeak() {
-    const u  = new SpeechSynthesisUtterance(text.trim());
-    u.lang   = lang;     // ALWAYS set lang — this is the primary driver
-    u.rate   = 0.88;
-    u.pitch  = 1;
-    u.volume = 1;
+    const u  = new SpeechSynthesisUtterance(text);
+    u.lang   = lang; u.rate = .88; u.pitch = 1; u.volume = 1;
 
     const vs   = speechSynthesis.getVoices();
-    const code = lang.split('-')[0]; // "hi" from "hi-IN", "ta" from "ta-IN" etc
+    const code = lang.split('-')[0];
 
-    // Search for a matching voice — strict, no English fallback
+    // Priority: exact match → language → region → English fallback
     const voice =
-      vs.find(v => v.lang === lang)                           ||  // exact: "hi-IN"
-      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) || // case insensitive
-      vs.find(v => v.lang === code + '-IN')                   ||  // e.g. "hi-IN"
-      vs.find(v => v.lang.startsWith(code + '-'))             ||  // "hi-*" any region
-      vs.find(v => v.lang === code);                              // bare "hi"
+      vs.find(v => v.lang === lang) ||
+      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
+      vs.find(v => v.lang.startsWith(code + '-IN')) ||
+      vs.find(v => v.lang.startsWith(code)) ||
+      vs.find(v => v.lang.startsWith('en-IN')) ||
+      vs.find(v => v.lang.startsWith('en')) ||
+      vs[0];
 
-    // Only assign voice if we found a correct-language one
-    // If nothing found, leave u.voice unset — browser will still
-    // try to honour u.lang and pick best available voice itself
     if (voice) u.voice = voice;
 
     u.onstart = () => {
@@ -335,17 +359,27 @@ function speakTTS(text, lang) {
     u.onend = () => {
       document.querySelectorAll('.b-tts.on').forEach(e => e.classList.remove('on'));
     };
+    u.onerror = () => {
+      // English fallback if target language voice fails
+      if (lang !== 'en-IN') {
+        const fb = new SpeechSynthesisUtterance(text);
+        fb.lang = 'en-IN'; fb.rate = .88;
+        const fv = speechSynthesis.getVoices().find(v => v.lang.startsWith('en')) || speechSynthesis.getVoices()[0];
+        if (fv) fb.voice = fv;
+        speechSynthesis.speak(fb);
+      }
+    };
 
     speechSynthesis.speak(u);
   }
 
-  // Voices may not be loaded yet on first call
+  // Wait for voices to load if not ready yet
   const voices = speechSynthesis.getVoices();
   if (voices.length > 0) {
     doSpeak();
   } else {
-    speechSynthesis.addEventListener('voiceschanged', function h() {
-      speechSynthesis.removeEventListener('voiceschanged', h);
+    speechSynthesis.addEventListener('voiceschanged', function handler() {
+      speechSynthesis.removeEventListener('voiceschanged', handler);
       doSpeak();
     });
   }
@@ -355,72 +389,24 @@ function speakTTS(text, lang) {
 function toggleMic() {
   const btn = document.getElementById('micBtn');
   if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-    toast('⚠️ STT not supported — use Chrome or Edge', 'var(--gold)'); return;
+    toast('⚠️ STT not supported in this browser', 'var(--gold)'); return;
   }
-
-  // If already listening, stop
-  if (srActive) {
-    sr?.stop();
-    srActive = false;
-    btn.classList.remove('on');
-    return;
-  }
+  if (srActive) { sr?.stop(); srActive = false; btn.classList.remove('on'); return; }
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   sr = new SR();
-  sr.lang           = selectedLang;  // ← speaks & listens in chosen language
-  sr.continuous     = false;
-  sr.interimResults = true;
+  sr.continuous      = false;
+  sr.interimResults  = true;
+  sr.lang            = selectedLang;
 
-  sr.onstart = () => {
-    srActive = true;
-    btn.classList.add('on');
-    toast('🎤 Listening in ' + (LANG_NAMES[selectedLang] || selectedLang) + '…', 'var(--green)');
+  sr.onstart  = () => { srActive = true; btn.classList.add('on'); toast('🎤 Listening in ' + LANG_NAMES[selectedLang], 'var(--green)'); };
+  sr.onresult = e  => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('replyInp').value = t;
+    autoH(document.getElementById('replyInp'));
   };
-
-  sr.onresult = e => {
-    let finalText   = '';
-    let interimText = '';
-
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const transcript = e.results[i][0].transcript;
-      if (e.results[i].isFinal) {
-        finalText += transcript;
-      } else {
-        interimText += transcript;
-      }
-    }
-
-    // Show live text in reply box while speaking
-    const inp = document.getElementById('replyInp');
-    inp.value = finalText || interimText;
-    autoH(inp);
-
-    // As soon as browser marks result as final → send immediately
-    if (finalText.trim()) {
-      srActive = false;
-      btn.classList.remove('on');
-      sr.stop();
-      sendReply();  // ← this sends to Firebase/BroadcastChannel with lang included
-    }
-  };
-
-  sr.onend = () => {
-    srActive = false;
-    btn.classList.remove('on');
-    // Send any remaining text that didn't get a final event
-    const leftover = document.getElementById('replyInp').value.trim();
-    if (leftover) sendReply();
-  };
-
-  sr.onerror = e => {
-    srActive = false;
-    btn.classList.remove('on');
-    if (e.error !== 'no-speech') {
-      toast('⚠️ Mic: ' + e.error, 'var(--red)');
-    }
-  };
-
+  sr.onend   = ()  => { srActive = false; btn.classList.remove('on'); };
+  sr.onerror = e   => { srActive = false; btn.classList.remove('on'); toast('⚠️ ' + e.error, 'var(--red)'); };
   sr.start();
 }
 

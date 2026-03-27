@@ -304,24 +304,21 @@ function speakTTS(text, lang) {
   speechSynthesis.cancel();
 
   function doSpeak() {
-    const u    = new SpeechSynthesisUtterance(text);
-    u.lang     = lang;
-    u.rate     = 0.88;
-    u.pitch    = 1;
-    u.volume   = 1;
+    const u  = new SpeechSynthesisUtterance(text);
+    u.lang   = lang; u.rate = .88; u.pitch = 1; u.volume = 1;
 
     const vs   = speechSynthesis.getVoices();
-    const code = lang.split('-')[0];  // e.g. "hi" from "hi-IN"
+    const code = lang.split('-')[0];
 
-    // Find best matching voice — strict order, no premature English fallback
+    // Priority: exact match → language → region → English fallback
     const voice =
-      vs.find(v => v.lang === lang) ||                              // exact: "hi-IN"
-      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||  // case-insensitive exact
-      vs.find(v => v.lang === code + '-IN') ||                      // "hi-IN" variant
-      vs.find(v => v.lang.startsWith(code + '-')) ||               // "hi-*" any region
-      vs.find(v => v.lang === code);                                // bare "hi"
-    // NOTE: No English fallback here — if no voice found, browser uses its default
-    // which respects u.lang better than forcing wrong English voice
+      vs.find(v => v.lang === lang) ||
+      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
+      vs.find(v => v.lang.startsWith(code + '-IN')) ||
+      vs.find(v => v.lang.startsWith(code)) ||
+      vs.find(v => v.lang.startsWith('en-IN')) ||
+      vs.find(v => v.lang.startsWith('en')) ||
+      vs[0];
 
     if (voice) u.voice = voice;
 
@@ -332,10 +329,21 @@ function speakTTS(text, lang) {
     u.onend = () => {
       document.querySelectorAll('.b-tts.on').forEach(e => e.classList.remove('on'));
     };
+    u.onerror = () => {
+      // English fallback if target language voice fails
+      if (lang !== 'en-IN') {
+        const fb = new SpeechSynthesisUtterance(text);
+        fb.lang = 'en-IN'; fb.rate = .88;
+        const fv = speechSynthesis.getVoices().find(v => v.lang.startsWith('en')) || speechSynthesis.getVoices()[0];
+        if (fv) fb.voice = fv;
+        speechSynthesis.speak(fb);
+      }
+    };
 
     speechSynthesis.speak(u);
   }
 
+  // Wait for voices to load if not ready yet
   const voices = speechSynthesis.getVoices();
   if (voices.length > 0) {
     doSpeak();

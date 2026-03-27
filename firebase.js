@@ -164,7 +164,6 @@ function sendMsg() {
 function receiveMsg(m) {
   addBubble(m.from, m.text, m.translations || {}, false);
 
-  // Hearing person receives ISL message → speak in their chosen language
   if (role === 'speak' && m.from === 'mute') {
     const code = selectedLang.split('-')[0];
     let speakText = m.text;
@@ -178,12 +177,8 @@ function receiveMsg(m) {
     speakTTS(speakText, selectedLang);
   }
 
-  // Mute person receives hearing person's reply
-  // Use the lang the HEARING PERSON was using (sent in message), not mute's own lang
   if (role === 'mute' && m.from === 'speak') {
-    const spokenLang = m.lang || 'en-IN';  // use hearing person's actual language
-    toast('🗣️ ' + m.text.substring(0, 45) + (m.text.length > 45 ? '…' : ''), 'var(--green)');
-    speakTTS(m.text, spokenLang);
+    toast('💬 "' + m.text.substring(0, 45) + (m.text.length > 45 ? '…' : '') + '"', 'var(--green)');
   }
 }
 
@@ -193,8 +188,7 @@ function sendReply() {
   const txt = inp.value.trim();
   if (!txt) return;
 
-  // Include lang so the mute person knows which language/voice to speak it in
-  const obj = { from:'speak', text:txt, translations:{}, lang:selectedLang, ts:Date.now() };
+  const obj = { from:'speak', text:txt, translations:{}, ts:Date.now() };
   if (useFirebase && roomRef) roomRef.child('messages').push(obj);
   else bcChan.postMessage({ t:'msg', ...obj });
 

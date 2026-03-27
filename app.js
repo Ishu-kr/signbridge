@@ -300,25 +300,28 @@ function onHR(res) {
 
 // ── TTS (Text-to-Speech) ──
 function speakTTS(text, lang) {
-  if (!window.speechSynthesis) return;
+  if (!window.speechSynthesis || !text) return;
   speechSynthesis.cancel();
 
   function doSpeak() {
-    const u  = new SpeechSynthesisUtterance(text);
-    u.lang   = lang; u.rate = .88; u.pitch = 1; u.volume = 1;
+    const u    = new SpeechSynthesisUtterance(text);
+    u.lang     = lang;   // always set lang — browser will use it even if no explicit voice found
+    u.rate     = 0.88;
+    u.pitch    = 1;
+    u.volume   = 1;
 
     const vs   = speechSynthesis.getVoices();
-    const code = lang.split('-')[0];
+    const code = lang.split('-')[0]; // e.g. "hi" from "hi-IN"
 
-    // Priority: exact match → language → region → English fallback
+    // Find best voice for the requested language — do NOT fall back to English
     const voice =
       vs.find(v => v.lang === lang) ||
       vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
-      vs.find(v => v.lang.startsWith(code + '-IN')) ||
-      vs.find(v => v.lang.startsWith(code)) ||
-      vs.find(v => v.lang.startsWith('en-IN')) ||
-      vs.find(v => v.lang.startsWith('en')) ||
-      vs[0];
+      vs.find(v => v.lang === code + '-IN') ||
+      vs.find(v => v.lang.startsWith(code + '-')) ||
+      vs.find(v => v.lang === code);
+    // If no match found: don't force English — leave u.voice unset so browser
+    // uses its own default for u.lang (correct behaviour on Chrome/Android)
 
     if (voice) u.voice = voice;
 
@@ -329,21 +332,10 @@ function speakTTS(text, lang) {
     u.onend = () => {
       document.querySelectorAll('.b-tts.on').forEach(e => e.classList.remove('on'));
     };
-    u.onerror = () => {
-      // English fallback if target language voice fails
-      if (lang !== 'en-IN') {
-        const fb = new SpeechSynthesisUtterance(text);
-        fb.lang = 'en-IN'; fb.rate = .88;
-        const fv = speechSynthesis.getVoices().find(v => v.lang.startsWith('en')) || speechSynthesis.getVoices()[0];
-        if (fv) fb.voice = fv;
-        speechSynthesis.speak(fb);
-      }
-    };
 
     speechSynthesis.speak(u);
   }
 
-  // Wait for voices to load if not ready yet
   const voices = speechSynthesis.getVoices();
   if (voices.length > 0) {
     doSpeak();
@@ -365,18 +357,50 @@ function toggleMic() {
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   sr = new SR();
-  sr.continuous      = false;
-  sr.interimResults  = true;
-  sr.lang            = selectedLang;
+  sr.continuous     = false;
+  sr.interimResults = true;
+  sr.lang           = selectedLang;
 
-  sr.onstart  = () => { srActive = true; btn.classList.add('on'); toast('🎤 Listening in ' + LANG_NAMES[selectedLang], 'var(--green)'); };
-  sr.onresult = e  => {
-    const t = Array.from(e.results).map(r => r[0].transcript).join('');
-    document.getElementById('replyInp').value = t;
-    autoH(document.getElementById('replyInp'));
+  sr.onstart = () => {
+    srActive = true;
+    btn.classList.add('on');
+    toast('🎤 Listening in ' + LANG_NAMES[selectedLang] + '…', 'var(--green)');
   };
-  sr.onend   = ()  => { srActive = false; btn.classList.remove('on'); };
-  sr.onerror = e   => { srActive = false; btn.classList.remove('on'); toast('⚠️ ' + e.error, 'var(--red)'); };
+
+  sr.onresult = e => {
+    let interim = '';
+    let final   = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    // Show interim text in the box while speaking
+    document.getElementById('replyInp').value = final || interim;
+    autoH(document.getElementById('replyInp'));
+
+    // Auto-send as soon as a final result arrives — no need to press Send
+    if (final.trim()) {
+      srActive = false;
+      btn.classList.remove('on');
+      sendReply();  // sends immediately with the spoken text
+    }
+  };
+
+  sr.onend = () => {
+    srActive = false;
+    btn.classList.remove('on');
+    // If box still has text (edge case) — send it
+    const leftover = document.getElementById('replyInp').value.trim();
+    if (leftover) sendReply();
+  };
+
+  sr.onerror = e => {
+    srActive = false;
+    btn.classList.remove('on');
+    toast('⚠️ Mic error: ' + e.error, 'var(--red)');
+  };
+
   sr.start();
 }
 

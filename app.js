@@ -300,29 +300,32 @@ function onHR(res) {
 
 // ── TTS (Text-to-Speech) ──
 function speakTTS(text, lang) {
-  if (!window.speechSynthesis || !text) return;
+  if (!window.speechSynthesis || !text || !text.trim()) return;
+
+  // Cancel any current speech first so new voice plays immediately
   speechSynthesis.cancel();
 
   function doSpeak() {
-    const u    = new SpeechSynthesisUtterance(text);
-    u.lang     = lang;   // always set lang — browser will use it even if no explicit voice found
-    u.rate     = 0.88;
-    u.pitch    = 1;
-    u.volume   = 1;
+    const u  = new SpeechSynthesisUtterance(text.trim());
+    u.lang   = lang;     // ALWAYS set lang — this is the primary driver
+    u.rate   = 0.88;
+    u.pitch  = 1;
+    u.volume = 1;
 
     const vs   = speechSynthesis.getVoices();
-    const code = lang.split('-')[0]; // e.g. "hi" from "hi-IN"
+    const code = lang.split('-')[0]; // "hi" from "hi-IN", "ta" from "ta-IN" etc
 
-    // Find best voice for the requested language — do NOT fall back to English
+    // Search for a matching voice — strict, no English fallback
     const voice =
-      vs.find(v => v.lang === lang) ||
-      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ||
-      vs.find(v => v.lang === code + '-IN') ||
-      vs.find(v => v.lang.startsWith(code + '-')) ||
-      vs.find(v => v.lang === code);
-    // If no match found: don't force English — leave u.voice unset so browser
-    // uses its own default for u.lang (correct behaviour on Chrome/Android)
+      vs.find(v => v.lang === lang)                           ||  // exact: "hi-IN"
+      vs.find(v => v.lang.toLowerCase() === lang.toLowerCase()) || // case insensitive
+      vs.find(v => v.lang === code + '-IN')                   ||  // e.g. "hi-IN"
+      vs.find(v => v.lang.startsWith(code + '-'))             ||  // "hi-*" any region
+      vs.find(v => v.lang === code);                              // bare "hi"
 
+    // Only assign voice if we found a correct-language one
+    // If nothing found, leave u.voice unset — browser will still
+    // try to honour u.lang and pick best available voice itself
     if (voice) u.voice = voice;
 
     u.onstart = () => {
@@ -336,12 +339,13 @@ function speakTTS(text, lang) {
     speechSynthesis.speak(u);
   }
 
+  // Voices may not be loaded yet on first call
   const voices = speechSynthesis.getVoices();
   if (voices.length > 0) {
     doSpeak();
   } else {
-    speechSynthesis.addEventListener('voiceschanged', function handler() {
-      speechSynthesis.removeEventListener('voiceschanged', handler);
+    speechSynthesis.addEventListener('voiceschanged', function h() {
+      speechSynthesis.removeEventListener('voiceschanged', h);
       doSpeak();
     });
   }
@@ -351,46 +355,60 @@ function speakTTS(text, lang) {
 function toggleMic() {
   const btn = document.getElementById('micBtn');
   if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-    toast('⚠️ STT not supported in this browser', 'var(--gold)'); return;
+    toast('⚠️ STT not supported — use Chrome or Edge', 'var(--gold)'); return;
   }
-  if (srActive) { sr?.stop(); srActive = false; btn.classList.remove('on'); return; }
+
+  // If already listening, stop
+  if (srActive) {
+    sr?.stop();
+    srActive = false;
+    btn.classList.remove('on');
+    return;
+  }
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   sr = new SR();
+  sr.lang           = selectedLang;  // ← speaks & listens in chosen language
   sr.continuous     = false;
   sr.interimResults = true;
-  sr.lang           = selectedLang;
 
   sr.onstart = () => {
     srActive = true;
     btn.classList.add('on');
-    toast('🎤 Listening in ' + LANG_NAMES[selectedLang] + '…', 'var(--green)');
+    toast('🎤 Listening in ' + (LANG_NAMES[selectedLang] || selectedLang) + '…', 'var(--green)');
   };
 
   sr.onresult = e => {
-    let interim = '';
-    let final   = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) final += t;
-      else interim += t;
-    }
-    // Show interim text in the box while speaking
-    document.getElementById('replyInp').value = final || interim;
-    autoH(document.getElementById('replyInp'));
+    let finalText   = '';
+    let interimText = '';
 
-    // Auto-send as soon as a final result arrives — no need to press Send
-    if (final.trim()) {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalText += transcript;
+      } else {
+        interimText += transcript;
+      }
+    }
+
+    // Show live text in reply box while speaking
+    const inp = document.getElementById('replyInp');
+    inp.value = finalText || interimText;
+    autoH(inp);
+
+    // As soon as browser marks result as final → send immediately
+    if (finalText.trim()) {
       srActive = false;
       btn.classList.remove('on');
-      sendReply();  // sends immediately with the spoken text
+      sr.stop();
+      sendReply();  // ← this sends to Firebase/BroadcastChannel with lang included
     }
   };
 
   sr.onend = () => {
     srActive = false;
     btn.classList.remove('on');
-    // If box still has text (edge case) — send it
+    // Send any remaining text that didn't get a final event
     const leftover = document.getElementById('replyInp').value.trim();
     if (leftover) sendReply();
   };
@@ -398,7 +416,9 @@ function toggleMic() {
   sr.onerror = e => {
     srActive = false;
     btn.classList.remove('on');
-    toast('⚠️ Mic error: ' + e.error, 'var(--red)');
+    if (e.error !== 'no-speech') {
+      toast('⚠️ Mic: ' + e.error, 'var(--red)');
+    }
   };
 
   sr.start();

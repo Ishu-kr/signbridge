@@ -162,8 +162,10 @@ function sendMsg() {
 
 // ── RECEIVE MESSAGE ──
 function receiveMsg(m) {
+  // Show message bubble on BOTH sides
   addBubble(m.from, m.text, m.translations || {}, false);
 
+  // ── Hearing person receives sign message → speak it ──
   if (role === 'speak' && m.from === 'mute') {
     const code = selectedLang.split('-')[0];
     let speakText = m.text;
@@ -177,8 +179,12 @@ function receiveMsg(m) {
     speakTTS(speakText, selectedLang);
   }
 
+  // ── Mute person receives hearing person reply → speak it out loud like a call ──
   if (role === 'mute' && m.from === 'speak') {
-    toast('💬 "' + m.text.substring(0, 45) + (m.text.length > 45 ? '…' : '') + '"', 'var(--green)');
+    // Use the EXACT language the hearing person was speaking in (sent with message)
+    const lang = m.lang || 'en-IN';
+    speakTTS(m.text, lang);
+    toast('🗣️ ' + m.text.substring(0, 50) + (m.text.length > 50 ? '…' : ''), 'var(--green)');
   }
 }
 
@@ -188,7 +194,8 @@ function sendReply() {
   const txt = inp.value.trim();
   if (!txt) return;
 
-  const obj = { from:'speak', text:txt, translations:{}, ts:Date.now() };
+  // CRITICAL: send 'lang' so mute person knows which language to speak in
+  const obj = { from:'speak', text:txt, translations:{}, lang:selectedLang, ts:Date.now() };
   if (useFirebase && roomRef) roomRef.child('messages').push(obj);
   else bcChan.postMessage({ t:'msg', ...obj });
 

@@ -3,40 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GESTURE TO VOICE TRANSLATING THE UNSPOKEN — ISL Multilingual Communication</title>
-
-  <!-- Google Fonts — all Indian scripts -->
+  <title>GESTURE TO VOICE — ISL Multilingual Communication</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&family=Noto+Sans+Kannada:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Noto+Sans+Gurmukhi:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- MediaPipe Hand Tracking -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"              crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
-  <!-- App Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── INLINE ILLUSTRATION STYLES ── */
+    .bg-illustration {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-illustration svg { width: 100%; height: 100%; }
+
+    /* RETRO EYE BADGE — inspired by Image 2 */
+    .retro-eye {
+      position: fixed; bottom: 2.5rem; right: 2rem; z-index: 2;
+      width: 64px; height: 64px; pointer-events: none;
+      animation: orbFloat 8s ease-in-out infinite, glowPulse 4s ease-in-out infinite;
+      opacity: .55;
+    }
+
+    /* ISL HAND ILLUSTRATION — inspired by Image 1 */
+    .isl-hero-art {
+      position: fixed; right: -20px; bottom: -30px; z-index: 0;
+      width: 340px; opacity: .07; pointer-events: none;
+      animation: floatY 6s ease-in-out infinite;
+      transform-origin: bottom right;
+    }
+
+    /* FOCUS WORD STAMP — retro typography accent */
+    .retro-stamp {
+      position: fixed; top: 40%; left: -30px; z-index: 0;
+      transform: rotate(-90deg); pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .55rem; font-weight: 700; letter-spacing: .3em;
+      text-transform: uppercase; color: rgba(245,98,42,.12);
+      white-space: nowrap; user-select: none;
+    }
+    .retro-stamp-r {
+      left: auto; right: -30px; transform: rotate(90deg);
+      color: rgba(0,201,167,.1);
+    }
+
+    /* MANIFEST TEXT — retro corner label */
+    .corner-label {
+      position: fixed; font-family: 'JetBrains Mono', monospace;
+      font-size: .5rem; font-weight: 700; letter-spacing: .2em;
+      text-transform: uppercase; opacity: .18; pointer-events: none;
+      z-index: 0;
+    }
+    .cl-tl { top: 1.2rem; left: 1.2rem; color: var(--orange2); }
+    .cl-br { bottom: 1.2rem; right: 1.2rem; color: var(--teal); }
+    .cl-tr { top: 1.2rem; right: 1.2rem; color: var(--purple); }
+    .cl-bl { bottom: 1.2rem; left: 1.2rem; color: var(--amber2); }
+
+    /* HALFTONE CORNER ACCENT — from Image 2 aesthetic */
+    .halftone {
+      position: fixed; z-index: 0; pointer-events: none;
+      border-radius: 50%; opacity: .04;
+      background: radial-gradient(circle, var(--orange) 20%, transparent 70%);
+    }
+  </style>
 </head>
 <body>
 
-<!-- Animated Particles -->
+<!-- ── DECORATIVE BACKGROUND ELEMENTS ── -->
 <div class="particles" id="particles"></div>
 
-<div class="app">
+<!-- Retro corner labels like Image 2 -->
+<div class="corner-label cl-tl">ISL · GESTURE · VOICE</div>
+<div class="corner-label cl-tr">v8 · REAL-TIME · INDIA</div>
+<div class="corner-label cl-bl">TRANSLATE · THE · UNSPOKEN</div>
+<div class="corner-label cl-br">SIGNBRIDGE · BILINGUAL</div>
 
-  <!-- Toast notifications -->
+<!-- Floating hand sign silhouettes like Image 1 warm hands -->
+<div id="floatingHands"></div>
+
+<!-- Retro stamp labels like Image 2 FOCUS / MANIFEST -->
+<div class="retro-stamp">GESTURE · VOICE · LANGUAGE · SIGN · COMMUNICATE · TRANSLATE</div>
+<div class="retro-stamp retro-stamp-r">ISL · HINDI · TAMIL · TELUGU · BENGALI · MARATHI · GUJARATI</div>
+
+<!-- Decorative orbs -->
+<div class="deco-orb" style="width:500px;height:500px;top:-100px;left:-150px;background:rgba(245,98,42,.06);animation-duration:18s"></div>
+<div class="deco-orb" style="width:400px;height:400px;bottom:-80px;right:-100px;background:rgba(0,201,167,.05);animation-duration:22s;animation-delay:-8s"></div>
+<div class="deco-orb" style="width:300px;height:300px;top:40%;left:40%;background:rgba(157,122,255,.04);animation-duration:26s;animation-delay:-14s"></div>
+
+<!-- Retro eye from Image 2 aesthetic -->
+<div class="retro-eye" id="retroEye">
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="32" cy="32" rx="30" ry="22" fill="rgba(245,98,42,.15)" stroke="rgba(245,98,42,.4)" stroke-width="1.5"/>
+    <circle cx="32" cy="32" r="12" fill="rgba(245,98,42,.2)" stroke="rgba(245,98,42,.5)" stroke-width="1"/>
+    <circle cx="32" cy="32" r="6" fill="rgba(245,98,42,.6)"/>
+    <circle cx="29" cy="29" r="2" fill="rgba(255,255,255,.5)"/>
+    <!-- radial lines like a real eye -->
+    <line x1="32" y1="10" x2="32" y2="14" stroke="rgba(245,98,42,.3)" stroke-width="1"/>
+    <line x1="32" y1="50" x2="32" y2="54" stroke="rgba(245,98,42,.3)" stroke-width="1"/>
+    <line x1="10" y1="32" x2="14" y2="32" stroke="rgba(245,98,42,.3)" stroke-width="1"/>
+    <line x1="50" y1="32" x2="54" y2="32" stroke="rgba(245,98,42,.3)" stroke-width="1"/>
+  </svg>
+</div>
+
+<!-- ISL hand illustration backdrop like Image 1 -->
+<div class="isl-hero-art">
+  <svg viewBox="0 0 340 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Abstract hand sign shapes in warm golden tones like Image 1 -->
+    <path d="M120 320 Q180 200 240 120 Q260 90 280 80" stroke="rgba(245,166,35,.6)" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <circle cx="200" cy="180" r="50" fill="rgba(245,98,42,.3)"/>
+    <circle cx="200" cy="180" r="35" fill="rgba(245,166,35,.4)"/>
+    <!-- Finger shapes -->
+    <rect x="185" y="100" width="14" height="60" rx="7" fill="rgba(245,98,42,.7)"/>
+    <rect x="203" y="90" width="14" height="70" rx="7" fill="rgba(245,166,35,.7)"/>
+    <rect x="221" y="96" width="14" height="65" rx="7" fill="rgba(245,98,42,.6)"/>
+    <rect x="239" y="108" width="14" height="55" rx="7" fill="rgba(245,166,35,.5)"/>
+    <!-- Thumb -->
+    <path d="M185 155 Q165 150 158 170 Q155 185 168 188" stroke="rgba(245,98,42,.7)" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <!-- Palm -->
+    <rect x="185" y="155" width="68" height="55" rx="12" fill="rgba(245,98,42,.5)"/>
+    <!-- Wrist lines like illustration hatching -->
+    <line x1="195" y1="210" x2="185" y2="280" stroke="rgba(245,166,35,.25)" stroke-width="2"/>
+    <line x1="210" y1="210" x2="205" y2="290" stroke="rgba(245,98,42,.2)" stroke-width="2"/>
+    <line x1="225" y1="210" x2="225" y2="285" stroke="rgba(245,166,35,.2)" stroke-width="2"/>
+    <line x1="240" y1="210" x2="244" y2="278" stroke="rgba(245,98,42,.18)" stroke-width="2"/>
+    <!-- Ghost hands in background like Image 1 -->
+    <path d="M60 350 Q80 300 100 260 Q110 240 120 230" stroke="rgba(0,201,167,.3)" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M270 350 Q260 300 255 260" stroke="rgba(0,201,167,.25)" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <!-- Speaker/sound waves like Image 1 -->
+    <path d="M30 180 Q20 165 20 150 Q20 135 30 120" stroke="rgba(245,98,42,.35)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <path d="M42 195 Q25 165 25 148 Q25 131 42 105" stroke="rgba(245,166,35,.25)" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <!-- Sparkle marks like Image 1 -->
+    <path d="M280 60 L285 50 L290 60 L285 70 Z" fill="rgba(255,255,255,.5)"/>
+    <path d="M80 100 L84 92 L88 100 L84 108 Z" fill="rgba(245,166,35,.4)"/>
+    <path d="M310 160 L313 154 L316 160 L313 166 Z" fill="rgba(0,201,167,.4)"/>
+  </svg>
+</div>
+
+<div class="app">
   <div class="toast-wrap" id="toastWrap"></div>
 
-  <!-- ══════════════════════════════════════════════════════
-       SCREEN 1 — FIREBASE SETUP
-       ══════════════════════════════════════════════════════ -->
+  <!-- ══ SCREEN 1 — FIREBASE SETUP ══ -->
   <div id="fbScreen">
     <div class="fb-wrap">
-
-      <!-- Logo -->
       <div class="logo-card">
         <div class="logo-icon">🤟</div>
         <div class="logo-text">
@@ -47,12 +157,11 @@
             <span class="badge b-gr">English</span>
             <span class="badge b-pu">🔤 हिंदी + 9 Languages</span>
             <span class="badge b-pk">🌐 Tamil · Telugu · Bengali…</span>
-            <span class="badge b-bl">🧠 50+ Gestures</span>
+            <span class="badge b-am">🧠 50+ Gestures</span>
           </div>
         </div>
       </div>
 
-      <!-- Firebase Config Card -->
       <div class="cfg-card">
         <div class="cfg-head">
           <div class="cfg-head-ico">🔥</div>
@@ -61,8 +170,6 @@
             <p>Connect once — config auto-saved in your browser forever</p>
           </div>
         </div>
-
-        <!-- Saved Config Banner -->
         <div id="savedBanner" style="display:none" class="saved-banner">
           <div class="sb-ico">✅</div>
           <div class="sb-txt">
@@ -74,8 +181,6 @@
             <button class="btn-xs bxd" onclick="clearSaved()">Clear</button>
           </div>
         </div>
-
-        <!-- Fields -->
         <div class="cfg-fields">
           <div>
             <div class="fl">API Key</div>
@@ -92,17 +197,11 @@
           <div>
             <div class="fl">Project ID</div>
             <input class="fi" id="fPid" type="text" placeholder="your-project-id" oninput="chkFb()">
-            <div class="fhint">
-              ⚙️ <a href="https://console.firebase.google.com" target="_blank">Project Settings</a>
-              → General → Project ID
-            </div>
+            <div class="fhint">⚙️ <a href="https://console.firebase.google.com" target="_blank">Project Settings</a> → General → Project ID</div>
           </div>
         </div>
-
         <div class="cfg-footer">
-          <button class="btn-primary" id="btnConn" disabled onclick="connectFb()">
-            🔥 Connect & Save Config
-          </button>
+          <button class="btn-primary" id="btnConn" disabled onclick="connectFb()">🔥 Connect & Save Config</button>
           <div class="skip-row">
             <div class="skip-line"></div>
             <span class="skip-or">or</span>
@@ -112,54 +211,20 @@
         </div>
       </div>
 
-      <!-- Quick Setup Guide -->
       <div class="guide-card">
         <div class="guide-head"><span>📋</span><h3>Get Firebase config in 2 minutes</h3></div>
         <div class="guide-steps">
-          <div class="gs">
-            <div class="gs-num">1</div>
-            <div>
-              <h4>Create Project</h4>
-              <p>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>
-                 → Add project → Name: <code>signbridge</code> → Disable Analytics → Create</p>
-            </div>
-          </div>
-          <div class="gs">
-            <div class="gs-num">2</div>
-            <div>
-              <h4>Enable Realtime Database</h4>
-              <p>Left menu → Build → Realtime Database → Create database →
-                 <strong>Start in test mode</strong> → Enable</p>
-            </div>
-          </div>
-          <div class="gs">
-            <div class="gs-num">3</div>
-            <div>
-              <h4>Get Config Values</h4>
-              <p>⚙️ Project Settings → Your apps → click <code>&lt;/&gt;</code>
-                 → Register app → Copy <code>apiKey</code>, <code>databaseURL</code>, <code>projectId</code></p>
-            </div>
-          </div>
-          <div class="gs">
-            <div class="gs-num">4</div>
-            <div>
-              <h4>Paste & Connect</h4>
-              <p>Fill the 3 fields above → click Connect.
-                 Config saves in your browser — never type it again on this device!</p>
-            </div>
-          </div>
+          <div class="gs"><div class="gs-num">1</div><div><h4>Create Project</h4><p>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Add project → Name: <code>signbridge</code> → Disable Analytics → Create</p></div></div>
+          <div class="gs"><div class="gs-num">2</div><div><h4>Enable Realtime Database</h4><p>Left menu → Build → Realtime Database → Create database → <strong>Start in test mode</strong> → Enable</p></div></div>
+          <div class="gs"><div class="gs-num">3</div><div><h4>Get Config Values</h4><p>⚙️ Project Settings → Your apps → click <code>&lt;/&gt;</code> → Register app → Copy <code>apiKey</code>, <code>databaseURL</code>, <code>projectId</code></p></div></div>
+          <div class="gs"><div class="gs-num">4</div><div><h4>Paste & Connect</h4><p>Fill the 3 fields above → click Connect. Config saves in your browser — never type it again on this device!</p></div></div>
         </div>
       </div>
-
     </div>
-  </div><!-- /fbScreen -->
+  </div>
 
-
-  <!-- ══════════════════════════════════════════════════════
-       SCREEN 2 — LANDING (Create / Join Room)
-       ══════════════════════════════════════════════════════ -->
+  <!-- ══ SCREEN 2 — LANDING ══ -->
   <div id="landing" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;gap:2.2rem;">
-
     <div class="hero">
       <div class="hero-logo">
         <div class="hero-logo-icon">🤟</div>
@@ -170,27 +235,19 @@
         <span class="badge b-or">भारतीय सांकेतिक भाषा</span>
         <span class="badge b-gr" id="connBadge">🔥 Firebase</span>
         <span class="badge b-pu">🔤 Hindi Bilingual</span>
-        <span class="badge b-bl">🧠 50+ Gestures</span>
+        <span class="badge b-am">🧠 50+ Gestures</span>
       </div>
     </div>
-
     <div class="setup-card">
-      <div class="sc-head">
-        <h2>Start a Conversation</h2>
-        <p>Create a new room or join with a code</p>
-      </div>
+      <div class="sc-head"><h2>Start a Conversation</h2><p>Create a new room or join with a code</p></div>
       <div class="sc-body">
-
-        <!-- Mode -->
         <div>
           <div class="sc-lbl">Mode</div>
           <div class="mode-toggle">
             <button class="mode-btn on" onclick="setMode('create')">➕ Create Room</button>
-            <button class="mode-btn"    onclick="setMode('join')">🔗 Join Room</button>
+            <button class="mode-btn" onclick="setMode('join')">🔗 Join Room</button>
           </div>
         </div>
-
-        <!-- Room Code -->
         <div>
           <div class="sc-lbl">Room Code</div>
           <div class="code-row">
@@ -198,8 +255,6 @@
             <button class="btn-gen" onclick="genCode()" title="Generate new code">⚡</button>
           </div>
         </div>
-
-        <!-- Role -->
         <div>
           <div class="sc-lbl">Your Role</div>
           <div class="role-grid">
@@ -215,19 +270,14 @@
             </div>
           </div>
         </div>
-
       </div>
       <div class="sc-foot">
         <button class="btn-enter" id="btnEnter" onclick="enterRoom()">Enter Room →</button>
       </div>
     </div>
+  </div>
 
-  </div><!-- /landing -->
-
-
-  <!-- ══════════════════════════════════════════════════════
-       SCREEN 3 — WAITING FOR PARTNER
-       ══════════════════════════════════════════════════════ -->
+  <!-- ══ SCREEN 3 — WAITING ══ -->
   <div id="waitScreen" style="display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:2rem;">
     <div class="wait-card">
       <div class="wait-spin"><div class="wait-inner">🤟</div></div>
@@ -236,25 +286,15 @@
         <div class="wcb-label">Room Code</div>
         <div class="wait-code" id="wtCode">----</div>
       </div>
-      <p class="wait-hint">
-        Ask your partner to open the <strong>same URL</strong>, click Join Room,
-        enter this code, and pick the opposite role.
-      </p>
+      <p class="wait-hint">Ask your partner to open the <strong>same URL</strong>, click Join Room, enter this code, and pick the opposite role.</p>
       <button class="btn-copy" onclick="copyCode()">📋 Copy Code</button>
       <div class="share-box">Share this URL: <strong id="shareUrl"></strong></div>
     </div>
-  </div><!-- /waitScreen -->
+  </div>
 
-
-  <!-- ══════════════════════════════════════════════════════
-       SCREEN 4 — ACTIVE CALL
-       ══════════════════════════════════════════════════════ -->
+  <!-- ══ SCREEN 4 — ACTIVE CALL ══ -->
   <div id="callScreen" style="display:none;min-height:100vh;flex-direction:column;">
-
-    <!-- Disconnect Banner -->
     <div class="disc-bar" id="discBar">⚠️ Partner disconnected — waiting…</div>
-
-    <!-- Top Bar -->
     <div class="topbar">
       <div class="tb-l">
         <div class="tb-logo">
@@ -283,18 +323,9 @@
         <button class="btn-leave" onclick="leaveRoom()">✕ Leave</button>
       </div>
     </div>
-
-    <!-- Two-Panel Layout -->
     <div class="call-layout">
-
-      <!-- LEFT — ISL Input (Mute Person) -->
       <div class="panel" id="leftPanel">
-        <div class="ph">
-          <span class="badge b-or">🤟 ISL Input</span>
-          <span class="ph-r" id="camSt"></span>
-        </div>
-
-        <!-- Camera Feed -->
+        <div class="ph"><span class="badge b-or">🤟 ISL Input</span><span class="ph-r" id="camSt"></span></div>
         <div class="vid-wrap" id="vidWrap">
           <video id="camVideo" autoplay muted playsinline></video>
           <canvas id="handCanvas"></canvas>
@@ -302,233 +333,155 @@
             <div class="gest-pill" id="gestPill">
               <span class="gp-dot" id="gpDot"></span>
               <span class="gp-txt" id="gpTxt">Position hands in frame</span>
-              <span class="gp-hi"  id="gpHi"></span>
+              <span class="gp-hi" id="gpHi"></span>
             </div>
-            <div class="gest-bar-wrap" id="gBarWrap">
-              <div class="gest-bar" id="gBar"></div>
-            </div>
+            <div class="gest-bar-wrap" id="gBarWrap"><div class="gest-bar" id="gBar"></div></div>
           </div>
         </div>
-
-        <!-- Gesture Search -->
-        <div class="gest-search-row">
-          <input class="gest-search" id="gestSearch"
-                 placeholder="🔍 Search gestures…"
-                 oninput="filterGestures(this.value)">
-        </div>
-
-        <!-- Gesture Legend -->
+        <div class="gest-search-row"><input class="gest-search" id="gestSearch" placeholder="🔍 Search gestures…" oninput="filterGestures(this.value)"></div>
         <div class="gl-wrap">
-          <div class="gl-label">
-            📷 Hold any gesture ~1.5s to auto-send
-            <span class="gl-count" id="glCount"></span>
-          </div>
+          <div class="gl-label">📷 Hold any gesture ~1.5s to auto-send<span class="gl-count" id="glCount"></span></div>
           <div class="gl-grid" id="glGrid"></div>
         </div>
-
-        <!-- ISL Word Categories -->
         <div class="isl-tabs-row" id="islTabs"></div>
-        <div class="isl-words"    id="islWords"></div>
-
-        <!-- ISL Alphabet -->
+        <div class="isl-words" id="islWords"></div>
         <div class="alpha-head">ISL Alphabet — tap to spell</div>
         <div class="alpha-row" id="alphaRow"></div>
-
-        <!-- Compose Box -->
         <div class="compose-sec">
           <div class="c-lbl">Composed Message</div>
-          <div class="cbox" id="cbox" contenteditable="true"
-               data-ph="Tap ISL words, show signs, or type freely…"></div>
+          <div class="cbox" id="cbox" contenteditable="true" data-ph="Tap ISL words, show signs, or type freely…"></div>
           <div class="bilingual-box">
-            <div class="bili-hi"   id="biliHi"></div>
+            <div class="bili-hi" id="biliHi"></div>
             <div class="bili-lang" id="biliLang"></div>
           </div>
           <div class="cbox-actions">
             <button class="btn-clear" onclick="clearCbox()">✕ Clear</button>
-            <button class="btn-send"  id="btnSend" onclick="sendMsgAnimated()">🔊 Send as Voice</button>
+            <button class="btn-send" id="btnSend" onclick="sendMsgAnimated()">🔊 Send as Voice</button>
           </div>
         </div>
-      </div><!-- /left panel -->
-
-      <!-- RIGHT — Live Chat (Hearing Person) -->
+      </div>
       <div class="panel" id="rightPanel">
         <div class="ph"><span class="badge b-gr">🗣️ Live Chat</span></div>
-
         <div class="chat-msgs" id="chatMsgs">
           <div class="chat-empty" id="chatEmpty">
             <div class="ce-icon">💬</div>
-            <p class="ce-p">Messages appear here with Hindi & selected-language translation.
-               Signs are spoken in your chosen voice language.</p>
+            <p class="ce-p">Messages appear here with Hindi & selected-language translation. Signs are spoken in your chosen voice language.</p>
           </div>
         </div>
-
         <div class="reply-sec">
           <div class="reply-lbl">Your Reply</div>
           <div class="reply-row">
-            <textarea class="reply-inp" id="replyInp"
-                      placeholder="Type your reply…" rows="1"
-                      oninput="autoH(this)"></textarea>
-            <button class="btn-mic"   id="micBtn" onclick="toggleMic()">🎤</button>
+            <textarea class="reply-inp" id="replyInp" placeholder="Type your reply…" rows="1" oninput="autoH(this)"></textarea>
+            <button class="btn-mic" id="micBtn" onclick="toggleMic()">🎤</button>
             <button class="btn-reply" onclick="sendReplyAnimated()">↑ Send</button>
           </div>
         </div>
-      </div><!-- /right panel -->
+      </div>
+    </div>
+  </div>
+</div>
 
-    </div><!-- /call-layout -->
-  </div><!-- /callScreen -->
-
-</div><!-- /app -->
-
-<!-- ══════════════════════════════════════════════════
-     JavaScript — load order matters!
-     ══════════════════════════════════════════════════ -->
 <script src="translations.js"></script>
 <script src="gestures.js"></script>
 <script src="app.js"></script>
 <script src="firebase.js"></script>
-
-<!-- ══════════════════════════════════════════════════
-     ANIMATION ENHANCEMENTS
-     ══════════════════════════════════════════════════ -->
 <script>
 // ── PARTICLES ──
-(function spawnParticles() {
-  const container = document.getElementById('particles');
-  const colors = ['rgba(255,107,53,.5)', 'rgba(34,212,160,.4)', 'rgba(167,139,255,.35)', 'rgba(249,185,36,.3)'];
-  const count = 18;
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const size  = Math.random() * 4 + 2;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const left  = Math.random() * 100;
-    const dur   = Math.random() * 14 + 8;
-    const delay = Math.random() * -20;
-    p.style.cssText = `
-      width:${size}px; height:${size}px;
-      left:${left}%;
-      background:${color};
-      animation-duration:${dur}s;
-      animation-delay:${delay}s;
-      box-shadow: 0 0 ${size*2}px ${color};
-    `;
-    container.appendChild(p);
+(function(){
+  const wrap = document.getElementById('particles');
+  const colors = ['rgba(245,98,42,.55)','rgba(0,201,167,.45)','rgba(157,122,255,.4)','rgba(245,166,35,.38)','rgba(240,107,189,.35)'];
+  for(let i=0;i<22;i++){
+    const p=document.createElement('div'); p.className='particle';
+    const s=Math.random()*5+2, c=colors[Math.floor(Math.random()*colors.length)];
+    p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${c};box-shadow:0 0 ${s*3}px ${c};animation-duration:${Math.random()*14+10}s;animation-delay:${Math.random()*-25}s`;
+    wrap.appendChild(p);
   }
 })();
 
-// ── SEND WITH RIPPLE EFFECT ──
-function sendMsgAnimated() {
-  const btn = document.getElementById('btnSend');
-  if (!btn) { sendMsg(); return; }
+// ── FLOATING HAND SIGNS — warm like Image 1 ──
+(function(){
+  const wrap = document.getElementById('floatingHands');
+  const signs = ['🤟','✋','👌','✌️','🤙','👍','🙏','👋','✊','🫴'];
+  for(let i=0;i<8;i++){
+    const h=document.createElement('div'); h.className='hand-float';
+    h.textContent = signs[i % signs.length];
+    h.style.cssText=`left:${5+Math.random()*90}%;font-size:${Math.random()*1.5+1.2}rem;animation-duration:${Math.random()*18+12}s;animation-delay:${Math.random()*-28}s;filter:drop-shadow(0 0 8px rgba(245,166,35,.3))`;
+    wrap.appendChild(h);
+  }
+})();
 
-  // Create ripple at button position
-  const rect = btn.getBoundingClientRect();
-  const ripple = document.createElement('div');
-  ripple.className = 'send-ripple';
-  ripple.style.left = (rect.left + rect.width / 2) + 'px';
-  ripple.style.top  = (rect.top  + rect.height / 2) + 'px';
-  document.body.appendChild(ripple);
-  setTimeout(() => ripple.remove(), 600);
+// ── RETRO EYE RANDOM BLINK ──
+setInterval(()=>{
+  const eye=document.getElementById('retroEye');
+  if(!eye) return;
+  eye.style.transform='scaleY(.1)';
+  setTimeout(()=>{eye.style.transform='';},120);
+}, 3200 + Math.random()*4000);
 
+// ── SEND RIPPLE ──
+function sendMsgAnimated(){
+  const btn=document.getElementById('btnSend');
+  if(btn){
+    const r=btn.getBoundingClientRect();
+    const rp=document.createElement('div'); rp.className='send-ripple';
+    rp.style.left=(r.left+r.width/2)+'px'; rp.style.top=(r.top+r.height/2)+'px';
+    document.body.appendChild(rp); setTimeout(()=>rp.remove(),600);
+  }
   sendMsg();
 }
-
-function sendReplyAnimated() {
-  const btn = event?.target;
-  if (btn) {
-    btn.style.transform = 'scale(.92)';
-    setTimeout(() => btn.style.transform = '', 150);
-  }
+function sendReplyAnimated(){
+  if(event&&event.target){event.target.style.transform='scale(.9)';setTimeout(()=>event.target.style.transform='',140);}
   sendReply();
 }
 
-// ── ENHANCE GESTURE PILL when hand detected ──
-const _origOnHR = window.onHR;
-function onHR(res) {
-  _origOnHR && _origOnHR(res);
-  const pill = document.getElementById('gestPill');
-  if (!pill) return;
-  if (res.multiHandLandmarks?.length) {
-    pill.classList.add('active');
-  } else {
-    pill.classList.remove('active');
+// ── GESTURE PILL ACTIVE STATE ──
+const _origOnHR=window.onHR;
+window.onHR=function(res){
+  _origOnHR&&_origOnHR(res);
+  const pill=document.getElementById('gestPill');
+  if(pill) pill.classList.toggle('active',!!(res.multiHandLandmarks&&res.multiHandLandmarks.length));
+};
+
+// ── STAGGER GESTURE GRID ──
+const _orig=window.buildGestureLegend;
+window.buildGestureLegend=function(list){
+  _orig&&_orig(list);
+  document.querySelectorAll('.gl-item').forEach((el,i)=>{el.style.animationDelay=(i*.012)+'s'});
+};
+const _origW=window.renderWords;
+window.renderWords=function(cat){
+  _origW&&_origW(cat);
+  document.querySelectorAll('.word-chip').forEach((el,i)=>{el.style.animationDelay=(i*.018)+'s'});
+};
+
+// ── ENHANCED TOAST ──
+const _origToast=window.toast;
+window.toast=function(msg,color){
+  const el=document.createElement('div'); el.className='toast';
+  el.style.borderLeftColor=color||'var(--blue2)';
+  el.textContent=msg;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=>{el.classList.add('exit');setTimeout(()=>el.remove(),260)},3200);
+};
+
+// ── INTERACTIVE CLICKS ──
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('akey')){
+    e.target.style.transform='scale(.8) rotate(-5deg)';
+    setTimeout(()=>e.target.style.transform='',130);
   }
-}
-
-// ── STAGGER GESTURE GRID ITEMS ──
-const _origBuildGestureLegend = window.buildGestureLegend;
-window.buildGestureLegend = function(list) {
-  _origBuildGestureLegend && _origBuildGestureLegend(list);
-  document.querySelectorAll('.gl-item').forEach((el, i) => {
-    el.style.animationDelay = (i * 0.015) + 's';
-  });
-};
-
-// ── STAGGER WORD CHIPS ──
-const _origRenderWords = window.renderWords;
-window.renderWords = function(cat) {
-  _origRenderWords && _origRenderWords(cat);
-  document.querySelectorAll('.word-chip').forEach((el, i) => {
-    el.style.animationDelay = (i * 0.02) + 's';
-  });
-};
-
-// ── TOAST AUTO-EXIT ANIMATION ──
-const _origToast = window.toast;
-window.toast = function(msg, color) {
-  const wrap = document.getElementById('toastWrap');
-  const el   = document.createElement('div');
-  el.className = 'toast';
-  el.style.borderLeftColor = (color || 'var(--blue)');
-  el.textContent = msg;
-  wrap.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('exit');
-    setTimeout(() => el.remove(), 280);
-  }, 3200);
-};
-
-// ── SCREEN TRANSITION HELPER ──
-function showScreen(id) {
-  ['fbScreen','landing','waitScreen','callScreen'].forEach(sid => {
-    const el = document.getElementById(sid);
-    if (!el) return;
-    if (sid === id) {
-      el.style.display = (sid === 'landing' || sid === 'waitScreen') ? 'flex' : (sid === 'callScreen' ? 'flex' : 'block');
-      el.style.animation = 'riseIn .4s cubic-bezier(.16,1,.3,1)';
-    } else {
-      el.style.display = 'none';
-    }
-  });
-}
-
-// ── KEY PRESS RIPPLE on Alphabet ──
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('akey')) {
-    e.target.style.transform = 'scale(.82)';
-    setTimeout(() => e.target.style.transform = '', 120);
+  if(e.target.closest('.word-chip')){
+    const c=e.target.closest('.word-chip');
+    c.style.transform='scale(.88)'; setTimeout(()=>c.style.transform='',130);
   }
-  if (e.target.closest('.word-chip')) {
-    const chip = e.target.closest('.word-chip');
-    chip.style.transform = 'scale(.9)';
-    setTimeout(() => chip.style.transform = '', 130);
+  if(e.target.closest('.gl-item')){
+    const g=e.target.closest('.gl-item');
+    g.style.transform='scale(.88)'; setTimeout(()=>g.style.transform='',100);
   }
 });
 
-// ── PAGE LOAD STAGGER for guide steps ──
-document.addEventListener('DOMContentLoaded', () => {
-  // Stagger guide step animations
-  document.querySelectorAll('.gs').forEach((el, i) => {
-    el.style.animationDelay = (.3 + i * .1) + 's';
-  });
-});
-
-// ── FOCUS GLOW on inputs ──
-document.querySelectorAll('.fi, .code-inp, .reply-inp, .gest-search').forEach(inp => {
-  inp.addEventListener('focus', () => inp.style.transition = 'all .25s ease');
-  inp.addEventListener('blur',  () => inp.style.transition = 'all .25s ease');
-});
+// ── RETRO EYE transition ──
+document.getElementById('retroEye').style.transition='transform .1s ease';
 </script>
-
 </body>
 </html>

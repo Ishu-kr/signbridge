@@ -139,27 +139,34 @@ body::before {
   min-height: 100vh; display: flex;
   align-items: flex-start; justify-content: center;
   padding: 2.5rem 1rem;
-  /* ISL signing illustration as background */
-  background-image: url('background_1.png');
-  background-size: cover;
-  background-position: center top;
-  background-attachment: fixed;
+  /* Canvas animated background */
+  background: #c8dff0;
   position: relative;
+  overflow: hidden;
 }
-/* Warm frosted overlay so content stays legible */
+/* Subtle scrim — light & readable, matches original warm overlay */
 #fbScreen::after {
   content: '';
   position: fixed;
   inset: 0;
   background:
     linear-gradient(160deg,
-      rgba(255,248,240,.88) 0%,
-      rgba(255,242,225,.82) 40%,
-      rgba(255,235,210,.78) 100%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+      rgba(255,248,240,.62) 0%,
+      rgba(255,244,230,.48) 40%,
+      rgba(255,238,218,.55) 100%);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
   z-index: 0;
   pointer-events: none;
+}
+/* Landing / wait screen canvas support */
+#landing, #waitScreen { position: relative; overflow: hidden; }
+#landing canvas[data-bg], #waitScreen canvas[data-bg] {
+  position: fixed !important;
+  inset: 0; z-index: 0; pointer-events: none;
+}
+#landing > *:not(canvas), #waitScreen > *:not(canvas) {
+  position: relative; z-index: 1;
 }
 .fb-wrap {
   width: 100%; max-width: 520px;

@@ -70,75 +70,6 @@ body::before {
 }
 .app { position: relative; z-index: 1; }
 
-/* ── Landing + WaitScreen: canvas sits behind, content floats above ── */
-#landing, #waitScreen {
-  position: relative;
-  overflow: hidden;
-}
-#landing > *:not(canvas),
-#waitScreen > *:not(canvas) {
-  position: relative;
-  z-index: 1;
-}
-#landing canvas[data-bg],
-#waitScreen canvas[data-bg] {
-  position: fixed !important;
-  inset: 0; z-index: 0; pointer-events: none;
-}
-
-/* Warm scrim over landing canvas so cards stay readable */
-#landing::before,
-#waitScreen::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: linear-gradient(160deg,
-    rgba(42,15,4,.52) 0%,
-    rgba(60,20,6,.38) 40%,
-    rgba(42,15,4,.55) 100%);
-  z-index: 0; pointer-events: none;
-}
-
-/* ── Dark-warm card overrides for landing ── */
-#landing .hero h1          { color: #f5edd8 !important; }
-#landing .hero-sub         { color: rgba(245,237,216,0.72) !important; }
-#landing .role-card        {
-  background: rgba(42,15,4,0.78) !important;
-  border: 1px solid rgba(217,119,6,0.35) !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.45) !important;
-}
-#landing .role-card h3     { color: #ffd480 !important; }
-#landing .role-card p      { color: rgba(245,237,216,0.65) !important; }
-#landing .room-card        {
-  background: rgba(36,12,3,0.85) !important;
-  border: 1px solid rgba(217,119,6,0.28) !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-#landing .room-card h3     { color: #f5edd8 !important; }
-#landing .room-card input  {
-  background: rgba(20,8,2,0.7) !important;
-  border-color: rgba(217,119,6,0.3) !important;
-  color: #f5edd8 !important;
-}
-#landing .room-card input::placeholder { color: rgba(245,237,216,0.3) !important; }
-#landing .room-card input:focus {
-  border-color: var(--orange) !important;
-  box-shadow: 0 0 0 3px rgba(232,99,26,0.2) !important;
-}
-
-/* Wait screen card */
-#waitScreen .wait-card {
-  background: rgba(42,15,4,0.85) !important;
-  border: 1px solid rgba(217,119,6,0.35) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.5) !important;
-}
-#waitScreen .wait-card h2  { color: #ffd480 !important; }
-#waitScreen .wait-card p   { color: rgba(245,237,216,0.65) !important; }
-
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
@@ -208,78 +139,28 @@ body::before {
   min-height: 100vh; display: flex;
   align-items: flex-start; justify-content: center;
   padding: 2.5rem 1rem;
-  /* Canvas animated background replaces static image */
-  background: #0e1b3a;
+  /* ISL signing illustration as background */
+  background-image: url('background_1.png');
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
   position: relative;
-  overflow: hidden;
 }
-/* Subtle dark-to-transparent scrim so form cards stay readable */
+/* Warm frosted overlay so content stays legible */
 #fbScreen::after {
   content: '';
   position: fixed;
   inset: 0;
   background:
     linear-gradient(160deg,
-      rgba(14,27,58,.55) 0%,
-      rgba(14,27,58,.35) 50%,
-      rgba(14,27,58,.60) 100%);
+      rgba(255,248,240,.88) 0%,
+      rgba(255,242,225,.82) 40%,
+      rgba(255,235,210,.78) 100%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 0;
   pointer-events: none;
 }
-
-/* ── FB SCREEN: make cards pop on the dark canvas ── */
-#fbBgCanvas { display: block; }
-
-/* Override card colors for dark background */
-#fbScreen .logo-card {
-  background: rgba(20,32,64,0.88) !important;
-  border: 1px solid rgba(232,99,26,0.3) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 60px rgba(232,99,26,0.08) !important;
-}
-#fbScreen .logo-card h1 { color: #f5edd8 !important; }
-#fbScreen .logo-card p  { color: rgba(245,237,216,0.65) !important; }
-
-#fbScreen .cfg-card {
-  background: rgba(18,28,56,0.90) !important;
-  border: 1px solid rgba(232,99,26,0.25) !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5) !important;
-}
-#fbScreen .cfg-card h2  { color: #f5edd8 !important; }
-#fbScreen .cfg-card p   { color: rgba(245,237,216,0.6) !important; }
-#fbScreen .fl           { color: rgba(245,237,216,0.75) !important; }
-#fbScreen .fi           { background: rgba(14,27,58,0.7) !important; border-color: rgba(232,99,26,0.25) !important; color: #f5edd8 !important; }
-#fbScreen .fi::placeholder { color: rgba(245,237,216,0.3) !important; }
-#fbScreen .fi:focus     { border-color: var(--orange) !important; box-shadow: 0 0 0 3px rgba(232,99,26,0.18) !important; }
-#fbScreen .fhint        { color: rgba(245,237,216,0.42) !important; }
-#fbScreen .fhint a      { color: var(--orange2) !important; }
-#fbScreen .skip-btn     { color: rgba(245,237,216,0.55) !important; }
-#fbScreen .skip-line    { border-color: rgba(245,237,216,0.15) !important; }
-#fbScreen .skip-or      { color: rgba(245,237,216,0.4) !important; }
-#fbScreen .btn-eye      { background: rgba(14,27,58,0.7) !important; border-color: rgba(232,99,26,0.25) !important; color: rgba(245,237,216,0.7) !important; }
-
-#fbScreen .guide-card {
-  background: rgba(16,26,52,0.85) !important;
-  border: 1px solid rgba(232,99,26,0.18) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-#fbScreen .guide-card h3  { color: #f5edd8 !important; }
-#fbScreen .guide-card h4  { color: var(--orange2) !important; }
-#fbScreen .guide-card p   { color: rgba(245,237,216,0.6) !important; }
-#fbScreen .guide-card a   { color: var(--orange2) !important; }
-#fbScreen .guide-card code { background: rgba(232,99,26,0.15) !important; color: var(--orange2) !important; }
-#fbScreen .gs-num         { background: rgba(232,99,26,0.15) !important; color: var(--orange) !important; border-color: rgba(232,99,26,0.3) !important; }
-
-#fbScreen .saved-banner {
-  background: rgba(26,158,111,0.12) !important;
-  border-color: rgba(26,158,111,0.3) !important;
-}
-#fbScreen .saved-banner h3 { color: #f5edd8 !important; }
-#fbScreen .saved-banner p  { color: rgba(245,237,216,0.6) !important; }
 .fb-wrap {
   width: 100%; max-width: 520px;
   display: flex; flex-direction: column; gap: 1.4rem;

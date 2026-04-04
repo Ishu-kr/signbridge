@@ -139,11 +139,33 @@ body::before {
   min-height: 100vh; display: flex;
   align-items: flex-start; justify-content: center;
   padding: 2.5rem 1rem;
+  /* ISL signing illustration as background */
+  background-image: url('background_1.png');
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  position: relative;
+}
+/* Warm frosted overlay so content stays legible */
+#fbScreen::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(160deg,
+      rgba(255,248,240,.88) 0%,
+      rgba(255,242,225,.82) 40%,
+      rgba(255,235,210,.78) 100%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 0;
+  pointer-events: none;
 }
 .fb-wrap {
   width: 100%; max-width: 520px;
   display: flex; flex-direction: column; gap: 1.4rem;
   animation: riseIn .5s ease;
+  position: relative; z-index: 1;
 }
 
 /* Logo Card */
@@ -254,6 +276,32 @@ body::before {
 /* ============================================================
    LANDING SCREEN
    ============================================================ */
+
+/* The landing div itself gets the background — applied via inline style override below */
+#landing {
+  background-image: url('background.png');
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+  position: relative;
+}
+/* Overlay: lighter warm tint — lets the bold illustration peek through edges */
+#landing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(245,242,238,.90) 0%,
+      rgba(240,236,230,.85) 50%,
+      rgba(245,242,238,.90) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  z-index: 0;
+  pointer-events: none;
+}
+#landing > * { position: relative; z-index: 1; }
+
 .hero { text-align: center; max-width: 500px; }
 .hero-logo { display: flex; align-items: center; justify-content: center; gap: .72rem; margin-bottom: .55rem; }
 .hero-logo-icon { font-size: 2rem; animation: wave 2s ease-in-out infinite; display: inline-block; }

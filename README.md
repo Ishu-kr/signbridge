@@ -1,6 +1,6 @@
-# 🤟 SignBridge — ISL Real-Time Communication
+# 🤟 Gesture to voice : translating the unspoken
 
-> **Break the silence. Bridge the gap.**
+> **Break the silence.**
 > Real-time Indian Sign Language (ISL) platform with 50+ gesture patterns, bilingual Hindi output, and 10-language Indian voice synthesis.
 
 ![SignBridge](https://img.shields.io/badge/SignBridge-ISL%20Communication-ff6b35?style=for-the-badge)
